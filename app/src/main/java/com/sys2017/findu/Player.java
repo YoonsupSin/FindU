@@ -1,5 +1,7 @@
 package com.sys2017.findu;
 
+import android.graphics.Rect;
+
 /**
  * Created by N552VW on 2017-07-18.
  */
@@ -8,7 +10,18 @@ public class Player {
 
     boolean canMove = false;
     boolean canJump = false;    boolean isjump = false;
-    boolean canAction = false;
+    boolean canAction = false;  boolean isBackMove = false;
+
+    Rect left;
+    Rect right;
+
+    public void setLeft(Rect left) {
+        this.left = left;
+    }
+
+    public void setRight(Rect right) {
+        this.right = right;
+    }
 
     int player_x;
     int player_y;
@@ -31,6 +44,8 @@ public class Player {
     double playerRadian;
 
     int speed = 2;
+
+
 
     public Player(int width, int height) {
         this.width = width;
@@ -73,6 +88,18 @@ public class Player {
                 canJump = false;
                 dy  = 9.0;
             }
+        }
+
+        //배경에따른 이동!
+        if ( isBackMove ){
+            dx = 10;
+            player_x -= dx;
+
+            if ( player_x <= left.width() + 100 ){
+                dx = 0;
+                player_x = width/5 + 100;
+            }
+
         }
 
     }

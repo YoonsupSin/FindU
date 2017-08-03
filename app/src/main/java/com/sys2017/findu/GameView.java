@@ -36,6 +36,10 @@ public class GameView extends View {
     Bitmap bitmap_land;
     Bitmap bitmap_test_light;   Paint paint_alpha_light;    int cnt_light = 0;    int light_delta = 3;
     Bitmap[] bitmap_back_water;     int i = 0;  int cnt_water = 0; int cnt_water_d = 1;
+    Bitmap[] bitmap_inMap;
+
+    //test map
+    Bitmap bitmap_background_test;
 
     //bitmap Aru----------------------------------------------Aru 관련변수
     Bitmap bitmap_Aru;      boolean Aru_canMove = false;
@@ -68,6 +72,8 @@ public class GameView extends View {
     Paint paint_alpha_action;
 
     Player player;
+    //player rect
+    Rect playerRect;
 
     int dx = 5;
     int dy = 5;
@@ -78,6 +84,24 @@ public class GameView extends View {
     public static boolean isPause = false;
 
     Msg msg;
+
+    //checkBack
+    boolean isBackMove = false;
+
+    //map stage cnt
+    int stage_cnt = 1;
+
+    //map change range
+    Rect right;         boolean rightMapChange = true;
+    Rect left;          boolean leftMapChange = true;
+
+    //map position
+    int backPos = 0;
+    int backPos_dx = 0;
+
+    int ch_W;
+    int ch_H;
+
 
     public GameView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -91,6 +115,8 @@ public class GameView extends View {
 
         ratioW = width/600;
         ratioH = height/336;
+
+
 
         CreateBitmap();
 
@@ -107,9 +133,6 @@ public class GameView extends View {
         paint_alpha_joy.setAlpha(80);
         paint_alpha_jump.setAlpha(80);
         paint_alpha_action.setAlpha(80);
-
-
-
 
     }
 
@@ -174,12 +197,23 @@ public class GameView extends View {
         bitmap_back_water[1] = bitmap01;
         img.recycle(); img = null;
 
+        //rect
+        left = new Rect( 0 , height-height/5 , height/5, height );
+        right = new Rect( width - height/5 , height - height/5  , width , height);
+
+        player.setLeft(left);   player.setRight(right);
+
         //test ch
         img = BitmapFactory.decodeResource(getResources(),R.drawable.logo_setting);
-        int ch_W = height/5;
-        int ch_H = height/5;
+        ch_W = height/5;
+        ch_H = height/5;
         bitmap_test_ch = Bitmap.createScaledBitmap(img,ch_W,ch_H,true);
         player.setCh_W(ch_W/2);   player.setCh_Y(ch_W/2);
+        img.recycle(); img = null;
+
+        //test map
+        img = BitmapFactory.decodeResource(getResources(),R.drawable.inmap00);
+        bitmap_background_test = Bitmap.createScaledBitmap(img,width,height,true);
         img.recycle(); img = null;
 
 
@@ -190,6 +224,10 @@ public class GameView extends View {
         bitmap_joy.recycle(); bitmap_joy = null;
         bitmap_jump.recycle(); bitmap_jump = null;
         bitmap_action.recycle(); bitmap_action = null;
+    }
+
+    void RemoveInGameMap(){
+
     }
 
     void moveAll(){
@@ -213,38 +251,43 @@ public class GameView extends View {
             cnt_water_d = - cnt_water_d;
         }
 
+        //player Rect
+        playerRect = new Rect(player.player_x ,player.player_y ,player.player_x+ch_W ,player.player_y+ ch_W);
+
     }
 
-    void checkBackDraw(Canvas canvas){
-        //맵의 특정 범위에 들어갔어?
-        if ( player.player_x >= width - width/5 ){
-            Log.e("위치",player.player_x+"");
 
-        }else if ( player.player_x <= width/5 ){
-            Log.e("위치",player.player_x+"");
-        }
-    }
+
+
 
     void TouchDown( int x, int y, int id ){
 
         if ( joyRect.contains(x,y) ){
-            paint_alpha_joy.setAlpha(240);
-            touch_joy_00 = true;
-            player.canMove = true;
-            player.touch_x = x;
-            player.touch_y = y;
+
+            if ( isBackMove == false ){
+                paint_alpha_joy.setAlpha(240);
+                touch_joy_00 = true;
+                player.canMove = true;
+                player.touch_x = x;
+                player.touch_y = y;
+            }
+
         }
 
         if ( actionRect.contains(x,y) ){
-            paint_alpha_action.setAlpha(240);
-            touch_action_00 = true;
+            if ( isBackMove == false ){
+                paint_alpha_action.setAlpha(240);
+                touch_action_00 = true;
+            }
         }
 
         if ( jumpRect.contains(x,y) ){
-            paint_alpha_jump.setAlpha(240);
-            touch_jump_00 = true;
-            player.canJump = true;
-            player.isjump = true;
+            if ( isBackMove == false ){
+                paint_alpha_jump.setAlpha(240);
+                touch_jump_00 = true;
+                player.canJump = true;
+                player.isjump = true;
+            }
         }
 
 
@@ -252,19 +295,28 @@ public class GameView extends View {
 
     void TouchUp( int x, int y, int id ){
         if  ( touch_joy_00 ){
-            paint_alpha_joy.setAlpha(80);
-            touch_joy_00 = false;
-            player.canMove = false;
+            if ( isBackMove == false ){
+                paint_alpha_joy.setAlpha(80);
+                touch_joy_00 = false;
+                player.canMove = false;
+            }
+
         }
 
         if  ( touch_action_00 ){
-            paint_alpha_action.setAlpha(80);
-            touch_action_00 = false;
+            if ( isBackMove == false ){
+                paint_alpha_action.setAlpha(80);
+                touch_action_00 = false;
+            }
+
         }
 
         if  ( touch_jump_00 ){
-            paint_alpha_jump.setAlpha(80);
-            touch_jump_00 = false;
+            if ( isBackMove == false ){
+                paint_alpha_jump.setAlpha(80);
+                touch_jump_00 = false;
+            }
+
         }
     }
 
@@ -281,41 +333,115 @@ public class GameView extends View {
     void PointerDown( int x, int y, int id ){
         if ( id > 0 ){
             if ( joyRect.contains(x,y) ){
-                paint_alpha_joy.setAlpha(240);
-                touch_joy_01 = true;
-                player.canMove = true;
+                if ( isBackMove == false ){
+                    paint_alpha_joy.setAlpha(240);
+                    touch_joy_01 = true;
+                    player.canMove = true;
+                }
+
             }
 
             if ( actionRect.contains(x,y) ){
-                paint_alpha_action.setAlpha(240);
-                touch_action_01 = true;
+                if ( isBackMove == false ){
+                    paint_alpha_action.setAlpha(240);
+                    touch_action_01 = true;
+                }
+
             }
 
             if ( jumpRect.contains(x,y) ){
-                paint_alpha_jump.setAlpha(240);
-                touch_jump_01 = true;
-                player.canJump = true;
+                if ( isBackMove == false ){
+                    paint_alpha_jump.setAlpha(240);
+                    touch_jump_01 = true;
+                    player.canJump = true;
+                }
+
             }
         }
     }
 
     void PointerUp( int x, int y, int id ){
         if ( touch_joy_01 ){
-            touch_joy_01 = false;
-            paint_alpha_joy.setAlpha(80);
+            if ( isBackMove == false ){
+                touch_joy_01 = false;
+                paint_alpha_joy.setAlpha(80);
+            }
+
         }
 
         if ( touch_action_01 ){
-            touch_action_01 = false;
-            paint_alpha_action.setAlpha(80);
+            if ( isBackMove == false ){
+                touch_action_01 = false;
+                paint_alpha_action.setAlpha(80);
+            }
+
         }
 
         if ( touch_jump_01 ){
-            touch_jump_01 = false;
-            paint_alpha_jump.setAlpha(80);
+            if ( isBackMove == false ){
+                touch_jump_01 = false;
+                paint_alpha_jump.setAlpha(80);
+            }
+
         }
 
 
+    }
+
+    void playerCheck(){
+
+    }
+
+    void reckoningBack(){
+        //맵의 특정 범위에!
+        if ( left.intersect(playerRect) ){
+            Log.e("위치",player.player_x+"");
+            if( leftMapChange ){
+                stage_cnt = 1;
+                leftMapChange = false;
+                backPos_dx = 10;
+
+            }
+
+
+        }
+
+
+        if ( right.intersect(playerRect) ){
+            Log.e("위치",player.player_x+"");
+            if ( rightMapChange ){
+                stage_cnt = 2;
+                rightMapChange = false;
+                backPos_dx = 10;
+
+                player.canMove = true;
+
+            }
+
+        }
+    }
+
+    void drawMap(Canvas canvas){
+        if ( stage_cnt == 1 ){
+            canvas.drawBitmap(bitmap_background,backPos,0,null);
+            canvas.drawBitmap(bitmap_test_light,backPos,0,paint_alpha_light);
+            canvas.drawBitmap(bitmap_back_water[i],backPos,0,null);
+            canvas.drawBitmap(bitmap_land,backPos,0,null);
+        }
+
+        if ( stage_cnt == 2 ){
+
+            canvas.drawBitmap(bitmap_background,backPos,0,null);
+            canvas.drawBitmap(bitmap_test_light,backPos,0,paint_alpha_light);
+            canvas.drawBitmap(bitmap_back_water[i],backPos,0,null);
+            canvas.drawBitmap(bitmap_land,backPos,0,null);
+
+            canvas.drawBitmap(bitmap_background_test,backPos + width ,0,null);
+
+            backPos -= backPos_dx;
+            if(backPos<-width) backPos = -width;
+
+        }
     }
 
     @Override
@@ -324,12 +450,20 @@ public class GameView extends View {
         super.onDraw(canvas);
         moveAll();
         //배경
-        canvas.drawBitmap(bitmap_background,0,0,null);
-        canvas.drawBitmap(bitmap_test_light,0,0,paint_alpha_light);
-        canvas.drawBitmap(bitmap_back_water[i],0,0,null);
-        canvas.drawBitmap(bitmap_land,0,0,null);
+        reckoningBack();
+        drawMap(canvas);
 
-        checkBackDraw(canvas);
+
+
+        //맵이동범위
+        Paint paint = new Paint();
+        paint.setColor(Color.WHITE);
+        paint.setAlpha(100);
+        canvas.drawRect(left,paint);
+        canvas.drawRect(right,paint);
+
+        //테스트 캐릭터 범위
+        canvas.drawRect(playerRect,paint);
 
         //조작
         canvas.drawBitmap(bitmap_joy,height/20,height - bitmap_joy.getHeight()-height/20,paint_alpha_joy);
@@ -338,6 +472,7 @@ public class GameView extends View {
 
         //테스트캐릭터
         canvas.drawBitmap(bitmap_test_ch,player.player_x,player.player_y,null);
+
 
     }
 
